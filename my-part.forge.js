@@ -1,10 +1,6 @@
-// ForgeCAD part
+// ForgeCAD part - Humanoid Robot Head
 // Docs: https://forgecad.io/docs
 
-const width = param("Width", 50, { min: 10, max: 200, unit: "mm" });
-const height = param("Height", 30, { min: 5, max: 100, unit: "mm" });
-const depth = param("Depth", 20, { min: 5, max: 100, unit: "mm" });
+const head = require("./2026/05/25/ninja-robot/parts/head.forge.js");
 
-const part = box(width, depth, height);
-
-return part;
+return head;
