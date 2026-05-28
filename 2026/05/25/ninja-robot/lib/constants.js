@@ -80,9 +80,9 @@ const DIMS = {
 const JOINTS = {
   neck: { yawMin: -180, yawMax: 180, pitchMin: -35, pitchMax: 35, rollMin: -25, rollMax: 25 },
   spine: { bendMin: -15, bendMax: 30 },
-  shoulder: { pitchMin: -120, pitchMax: 180, rollMin: 0, rollMax: 120 },
+  shoulder: { yawMin: -90, yawMax: 90, pitchMin: -120, pitchMax: 180, rollMin: 0, rollMax: 120 },
   elbow: { pitchMin: -140, pitchMax: 0 },
-  wrist: { yawMin: -45, yawMax: 45 },
+  wrist: { pitchMin: -45, pitchMax: 45, yawMin: -45, yawMax: 45 },
   hip: { pitchMin: -30, pitchMax: 110, rollMin: -10, rollMax: 45 },
   knee: { pitchMin: 0, pitchMax: 130 },
   ankle: { pitchMin: -30, pitchMax: 30 },

@@ -292,6 +292,154 @@ function makeCraniumShell() {
   );
 }
 
+const MOUTH_ARC = {
+  frontY: 75,
+  curve: 0.0128,
+  socketBackOffset: 2.4,
+  upperGumZ: 96,
+  lowerGumZ: 77.5,
+};
+
+function mouthArcY(x, offset = 0) {
+  return MOUTH_ARC.frontY - MOUTH_ARC.curve * x * x + offset;
+}
+
+function mouthArcAngle(x) {
+  return Math.atan2(-2 * MOUTH_ARC.curve * x, 1) * 180 / Math.PI;
+}
+
+function roundedCrown(width, depth, height, radius) {
+  return roundedRect(width, depth, Math.min(radius, width * 0.42, depth * 0.42)).extrude(height);
+}
+
+function placeOnMouthArc(shape, x, yOffset, z) {
+  return shape
+    .rotateZ(mouthArcAngle(x))
+    .translate(x, mouthArcY(x, yOffset), z);
+}
+
+function toothCrown(spec, upper) {
+  if (spec.label === "canine") {
+    const baseRadius = Math.max(spec.tw, spec.td) * 0.5;
+    const tipRadius = Math.max(baseRadius * 0.38, 0.9);
+    const crown = upper
+      ? cylinder(spec.th, tipRadius, baseRadius, 24)
+      : cylinder(spec.th, baseRadius, tipRadius, 24);
+    return crown.scale([spec.tw / (baseRadius * 2), spec.td / (baseRadius * 2), 1.0]);
+  }
+
+  const crown = roundedCrown(spec.tw, spec.td, spec.th, spec.r || 1.0);
+  const labialFacet = roundedCrown(spec.tw * 0.74, 0.7, spec.th * 0.72, 0.35)
+    .translate(0, spec.td * 0.5 - 0.18, spec.th * 0.14);
+
+  if (spec.label === "molar" || spec.label === "premolar") {
+    const fissure = box(spec.tw * 0.34, spec.td + 1.2, 1.0)
+      .translate(0, 0, upper ? 0.45 : spec.th - 1.45);
+    const transverseGroove = box(spec.tw + 1.0, 0.8, 1.0)
+      .translate(0, 0, upper ? 0.45 : spec.th - 1.45);
+    return difference(union(crown, labialFacet), [fissure, transverseGroove]);
+  }
+
+  const incisalBevel = box(spec.tw + 1, spec.td + 1, 1.5)
+    .rotateX(upper ? -8 : 8)
+    .translate(0, 0, upper ? 0.1 : spec.th - 1.4);
+  return difference(union(crown, labialFacet), [incisalBevel]);
+}
+
+function makeDentalArch(upper) {
+  const specs = [
+    { x: 44, label: "molar_2", tw: 7.8, td: 7.2, th: upper ? 6.0 : 5.5, sw: 9.4, sd: 8.8, r: 1.3 },
+    { x: 35, label: "molar_1", tw: 7.4, td: 6.8, th: upper ? 6.4 : 5.8, sw: 9.0, sd: 8.4, r: 1.2 },
+    { x: 27, label: "premolar_2", tw: 5.8, td: 5.6, th: upper ? 6.8 : 6.2, sw: 7.2, sd: 7.0, r: 1.0 },
+    { x: 19, label: "premolar_1", tw: 5.4, td: 5.0, th: upper ? 7.0 : 6.4, sw: 6.8, sd: 6.4, r: 0.9 },
+    { x: 11, label: "canine", tw: 4.7, td: 4.5, th: upper ? 10.5 : 9.3, sw: 6.4, sd: 6.0 },
+    { x: 4, label: "central", tw: 5.4, td: 3.6, th: upper ? 9.0 : 7.8, sw: 6.8, sd: 5.0, r: 0.8 },
+    { x: -4, label: "central", tw: 5.4, td: 3.6, th: upper ? 9.0 : 7.8, sw: 6.8, sd: 5.0, r: 0.8 },
+    { x: -11, label: "canine", tw: 4.7, td: 4.5, th: upper ? 10.5 : 9.3, sw: 6.4, sd: 6.0 },
+    { x: -19, label: "premolar_1", tw: 5.4, td: 5.0, th: upper ? 7.0 : 6.4, sw: 6.8, sd: 6.4, r: 0.9 },
+    { x: -27, label: "premolar_2", tw: 5.8, td: 5.6, th: upper ? 6.8 : 6.2, sw: 7.2, sd: 7.0, r: 1.0 },
+    { x: -35, label: "molar_1", tw: 7.4, td: 6.8, th: upper ? 6.4 : 5.8, sw: 9.0, sd: 8.4, r: 1.2 },
+    { x: -44, label: "molar_2", tw: 7.8, td: 7.2, th: upper ? 6.0 : 5.5, sw: 9.4, sd: 8.8, r: 1.3 },
+  ];
+
+  const children = [];
+  const cutters = [];
+  const prefix = upper ? "upper" : "lower";
+  const socketZ = upper ? MOUTH_ARC.upperGumZ - 2.8 : MOUTH_ARC.lowerGumZ;
+
+  for (let i = 0; i < specs.length; i++) {
+    const spec = specs[i];
+    const socketOuter = roundedCrown(spec.sw, spec.sd, 4.4, 1.1);
+    const socketInner = roundedCrown(spec.tw + 0.8, spec.td + 0.8, 6.4, 0.7).translate(0, 0, -0.8);
+    const socket = placeOnMouthArc(
+      difference(socketOuter, [socketInner]),
+      spec.x,
+      -MOUTH_ARC.socketBackOffset,
+      socketZ
+    )
+      .color(COLORS.teethSocket)
+      .material(MATERIALS.M_black_oxide);
+
+    const crownZ = upper ? MOUTH_ARC.upperGumZ - spec.th : MOUTH_ARC.lowerGumZ + 1.5;
+    const tooth = placeOnMouthArc(toothCrown(spec, upper), spec.x, 0, crownZ)
+      .color(COLORS.chrome)
+      .material(MATERIALS.M_dark_brushed_metal);
+
+    const pin = placeOnMouthArc(
+      cylinder(upper ? 4.8 : 4.2, 0.9, undefined, 12),
+      spec.x,
+      -MOUTH_ARC.socketBackOffset,
+      upper ? MOUTH_ARC.upperGumZ - 4.5 : MOUTH_ARC.lowerGumZ + 0.2
+    )
+      .color(COLORS.fastenerDark)
+      .material(MATERIALS.M_fastener_dark);
+
+    children.push(
+      { name: `${prefix}_socket_${spec.label}_${i + 1}`, shape: socket },
+      { name: `${prefix}_tooth_${spec.label}_${i + 1}`, shape: tooth },
+      { name: `${prefix}_tooth_alignment_pin_${i + 1}`, shape: pin }
+    );
+
+    cutters.push(
+      placeOnMouthArc(
+        roundedCrown(spec.sw + 1.2, spec.sd + 1.2, upper ? 8 : 13, 1.1),
+        spec.x,
+        -MOUTH_ARC.socketBackOffset,
+        upper ? MOUTH_ARC.upperGumZ - 5 : MOUTH_ARC.lowerGumZ - 1
+      )
+    );
+  }
+
+  return { children, cutters };
+}
+
+function makeGumRail(upper) {
+  const segments = [];
+  const z = upper ? MOUTH_ARC.upperGumZ - 3.6 : MOUTH_ARC.lowerGumZ + 0.2;
+  const height = upper ? 5.8 : 5.2;
+  for (let gx = -47; gx <= 47; gx += 3.8) {
+    segments.push(placeOnMouthArc(roundedCrown(4.4, 3.4, height, 0.8), gx, -4.8, z));
+  }
+  return union(...segments)
+    .color(COLORS.darkMetal)
+    .material(MATERIALS.M_black_oxide);
+}
+
+function makeSegmentedLip(prefix, upper) {
+  const parts = [];
+  const z = upper ? 88.6 : 79.6;
+  const height = upper ? 5.2 : 4.4;
+  for (let x = -39; x <= 39; x += 13) {
+    parts.push({
+      name: `${prefix}_lip_plate_${x}`,
+      shape: placeOnMouthArc(roundedCrown(12.4, 5.0, height, 1.2), x, 1.9, z)
+        .color(x === 0 ? COLORS.chrome : COLORS.steel)
+        .material(MATERIALS.M_dark_brushed_metal)
+    });
+  }
+  return parts;
+}
+
 function makeFaceFrame() {
   const bridge = box(90, 35, 70)
     .translate(0, 30, 100)
@@ -421,124 +569,31 @@ function makeFaceFrame() {
     .color(COLORS.chrome)
     .material(MATERIALS.M_dark_brushed_metal);
 
-  // --- Anatomically differentiated upper teeth ---
-  // Tooth specs: [xPos, label, toothWidth, toothDepth, toothHeight, socketWidth, socketDepth]
-  // Layout: molars (back) → premolars → canines → incisors (center)
-  const upperTeethSpecs = [
-    // Right molars (wide, squat)
-    { x: 38,  label: "molar",    tw: 7.0, td: 6.0, th: 6.0, sw: 8.5, sd: 7.5 },
-    { x: 30,  label: "premolar", tw: 5.6, td: 5.2, th: 6.5, sw: 7.0, sd: 6.6 },
-    // Right canine (narrower, taller, pointed)
-    { x: 22,  label: "canine",   tw: 4.2, td: 4.0, th: 9.0, sw: 5.8, sd: 5.4 },
-    // Right lateral incisor
-    { x: 14,  label: "lateral",  tw: 4.6, td: 3.2, th: 7.5, sw: 6.2, sd: 4.8 },
-    // Right central incisor
-    { x: 6,   label: "central",  tw: 5.2, td: 3.0, th: 8.0, sw: 6.8, sd: 4.6 },
-    // Left central incisor
-    { x: -6,  label: "central",  tw: 5.2, td: 3.0, th: 8.0, sw: 6.8, sd: 4.6 },
-    // Left lateral incisor
-    { x: -14, label: "lateral",  tw: 4.6, td: 3.2, th: 7.5, sw: 6.2, sd: 4.8 },
-    // Left canine
-    { x: -22, label: "canine",   tw: 4.2, td: 4.0, th: 9.0, sw: 5.8, sd: 5.4 },
-    // Left premolar & molar
-    { x: -30, label: "premolar", tw: 5.6, td: 5.2, th: 6.5, sw: 7.0, sd: 6.6 },
-    { x: -38, label: "molar",    tw: 7.0, td: 6.0, th: 6.0, sw: 8.5, sd: 7.5 },
-  ];
-
-  const upperTeethGroup = [];
-  const arcA = 0.014; // parabolic arc coefficient
-  const arcYFront = 73;
-  for (let i = 0; i < upperTeethSpecs.length; i++) {
-    const spec = upperTeethSpecs[i];
-    const x = spec.x;
-    const y = arcYFront - arcA * x * x;
-    const angle = Math.atan2(-2 * arcA * x, 1) * 180 / Math.PI;
-
-    // Socket: hollowed box that holds the tooth peg
-    const socketOuter = box(spec.sw, spec.sd, 4.5);
-    const socketInner = box(spec.tw + 0.4, spec.td + 0.3, 7).translate(0, 0, -1);
-    const socket = difference(socketOuter, [socketInner])
-      .rotateZ(angle)
-      .translate(x, y, 92)
-      .color(COLORS.teethSocket)
-      .material(MATERIALS.M_black_oxide);
-
-    // Tooth shape varies by type
-    let tooth;
-    if (spec.label === "canine") {
-      // Tapered canine: wider base, narrower tip via two stacked boxes
-      const base = box(spec.tw, spec.td, spec.th * 0.55);
-      const tip = box(spec.tw * 0.65, spec.td * 0.7, spec.th * 0.55)
-        .translate(0, 0, -spec.th * 0.45);
-      tooth = union(base, tip)
-        .rotateZ(angle)
-        .translate(x, y, 89 - (spec.th - 7) * 0.3)
-        .color(COLORS.chrome)
-        .material(MATERIALS.M_dark_brushed_metal);
-    } else if (spec.label === "molar" || spec.label === "premolar") {
-      // Wider occlusal surface with a subtle groove
-      const body = box(spec.tw, spec.td, spec.th);
-      const groove = box(spec.tw * 0.4, spec.td + 2, 1.2)
-        .translate(0, 0, spec.th * 0.5 - 0.4);
-      tooth = difference(body, [groove])
-        .rotateZ(angle)
-        .translate(x, y, 89.5 - (spec.th - 7) * 0.3)
-        .color(COLORS.chrome)
-        .material(MATERIALS.M_dark_brushed_metal);
-    } else {
-      // Incisors: flat chisel-edge (standard box, slightly beveled feel)
-      tooth = box(spec.tw, spec.td, spec.th)
-        .rotateZ(angle)
-        .translate(x, y, 89.5 - (spec.th - 7) * 0.3)
-        .color(COLORS.chrome)
-        .material(MATERIALS.M_dark_brushed_metal);
-    }
-
-    upperTeethGroup.push(
-      { name: `upper_socket_${spec.label}_${i + 1}`, shape: socket },
-      { name: `upper_tooth_${spec.label}_${i + 1}`, shape: tooth }
-    );
-  }
-
-  // --- Upper gum rail: parabolic arch behind the teeth ---
-  const gumSegments = [];
-  for (let gx = -40; gx <= 40; gx += 4) {
-    const gy = arcYFront - arcA * gx * gx - 3.5; // slightly behind teeth
-    const gAngle = Math.atan2(-2 * arcA * gx, 1) * 180 / Math.PI;
-    gumSegments.push(
-      box(4.2, 3.0, 5.5)
-        .rotateZ(gAngle)
-        .translate(gx, gy, 93.5)
-    );
-  }
-  const upperGumRail = union(...gumSegments)
-    .color(COLORS.darkMetal)
-    .material(MATERIALS.M_black_oxide);
-
-  // --- Upper lip armor plates ---
-  // Two angled plates flanking the mouth opening, bridging the cheeks to the central teeth
-  const upperLipCenterBlank = box(68, 5, 6)
-    .translate(0, 77, 87);
-  const upperLipCenterSlot = box(52, 3, 8)
-    .translate(0, 78, 87);
-  const upperLipCenter = difference(upperLipCenterBlank, [upperLipCenterSlot])
+  const upperDental = makeDentalArch(true);
+  const upperGumRail = makeGumRail(true);
+  const upperLipPlates = makeSegmentedLip("upper", true);
+  const upperLipSeal = difference(
+    roundedCrown(82, 5.8, 5.2, 2.0).translate(0, 77.2, 88.8),
+    [roundedCrown(57, 3.2, 6.2, 1.3).translate(0, 78.0, 88.3)]
+  )
     .color(COLORS.chrome)
     .material(MATERIALS.M_dark_brushed_metal);
 
-  const upperLipLeft = box(18, 6, 7)
-    .rotateZ(-10)
-    .translate(-42, 72, 86)
-    .color(COLORS.steel)
-    .material(MATERIALS.M_dark_brushed_metal);
-  const upperLipRight = box(18, 6, 7)
-    .rotateZ(10)
-    .translate(42, 72, 86)
-    .color(COLORS.steel)
-    .material(MATERIALS.M_dark_brushed_metal);
+  const leftMouthCorner = cylinder(5.0, 5.2, 3.2, 20)
+    .pointAlong([0, 1, 0])
+    .rotateZ(-16)
+    .translate(-51, 70, 85)
+    .color(COLORS.blackOxide)
+    .material(MATERIALS.M_black_oxide);
+  const rightMouthCorner = cylinder(5.0, 5.2, 3.2, 20)
+    .pointAlong([0, 1, 0])
+    .rotateZ(16)
+    .translate(51, 70, 85)
+    .color(COLORS.blackOxide)
+    .material(MATERIALS.M_black_oxide);
 
-  // --- Oral cavity depth plate (dark recess behind teeth) ---
-  const oralCavity = box(60, 10, 14)
-    .translate(0, 62, 86)
+  const oralCavity = roundedCrown(66, 13, 8.0, 2.8)
+    .translate(0, 54, 83.4)
     .color(COLORS.black)
     .material(MATERIALS.M_black_oxide);
 
@@ -556,11 +611,12 @@ function makeFaceFrame() {
     { name: "right_zygomatic_front", shape: rightZygomaticFront },
     { name: "right_zygomatic_side", shape: rightZygomaticSide },
     { name: "upper_gum_rail", shape: upperGumRail },
-    { name: "upper_lip_center", shape: upperLipCenter },
-    { name: "upper_lip_left", shape: upperLipLeft },
-    { name: "upper_lip_right", shape: upperLipRight },
+    { name: "upper_lip_seal", shape: upperLipSeal },
+    ...upperLipPlates,
+    { name: "left_oral_commissure_socket", shape: leftMouthCorner },
+    { name: "right_oral_commissure_socket", shape: rightMouthCorner },
     { name: "oral_cavity_recess", shape: oralCavity },
-    ...upperTeethGroup
+    ...upperDental.children
   );
 }
 
@@ -604,21 +660,21 @@ function makeMandible() {
 
   // --- Lower lip armor plate ---
   const lowerLipBlank = box(66, 5, 5)
-    .translate(0, 75, 83);
+    .translate(0, 75, 79.7);
   const lowerLipSlot = box(50, 3, 7)
-    .translate(0, 76, 83);
+    .translate(0, 76, 79.2);
   const lowerLip = difference(lowerLipBlank, [lowerLipSlot])
     .color(COLORS.chrome)
     .material(MATERIALS.M_dark_brushed_metal);
 
   const lowerLipCornerL = box(14, 5, 6)
     .rotateZ(-12)
-    .translate(-40, 70, 82)
+    .translate(-40, 70, 79.2)
     .color(COLORS.steel)
     .material(MATERIALS.M_dark_brushed_metal);
   const lowerLipCornerR = box(14, 5, 6)
     .rotateZ(12)
-    .translate(40, 70, 82)
+    .translate(40, 70, 79.2)
     .color(COLORS.steel)
     .material(MATERIALS.M_dark_brushed_metal);
 
@@ -664,90 +720,26 @@ function makeMandible() {
     .color(COLORS.darkMetal)
     .material(MATERIALS.M_black_oxide);
 
-  // --- Anatomically differentiated lower teeth ---
-  const lowerTeethSpecs = [
-    { x: 38,  label: "molar",    tw: 7.0, td: 6.0, th: 5.5, sw: 8.5, sd: 7.5 },
-    { x: 30,  label: "premolar", tw: 5.6, td: 5.2, th: 6.0, sw: 7.0, sd: 6.6 },
-    { x: 22,  label: "canine",   tw: 4.0, td: 3.8, th: 8.5, sw: 5.6, sd: 5.2 },
-    { x: 14,  label: "lateral",  tw: 4.4, td: 3.0, th: 7.0, sw: 6.0, sd: 4.6 },
-    { x: 6,   label: "central",  tw: 4.8, td: 2.8, th: 7.5, sw: 6.4, sd: 4.4 },
-    { x: -6,  label: "central",  tw: 4.8, td: 2.8, th: 7.5, sw: 6.4, sd: 4.4 },
-    { x: -14, label: "lateral",  tw: 4.4, td: 3.0, th: 7.0, sw: 6.0, sd: 4.6 },
-    { x: -22, label: "canine",   tw: 4.0, td: 3.8, th: 8.5, sw: 5.6, sd: 5.2 },
-    { x: -30, label: "premolar", tw: 5.6, td: 5.2, th: 6.0, sw: 7.0, sd: 6.6 },
-    { x: -38, label: "molar",    tw: 7.0, td: 6.0, th: 5.5, sw: 8.5, sd: 7.5 },
-  ];
+  const lowerDental = makeDentalArch(false);
+  const lowerCutters = lowerDental.cutters;
+  const lowerGumRail = makeGumRail(false);
+  const lowerLipPlates = makeSegmentedLip("lower", false);
 
-  const lowerTeethGroup = [];
-  const lowerCutters = [];
-  const lArcA = 0.014;
-  const lArcYFront = 73;
-  for (let i = 0; i < lowerTeethSpecs.length; i++) {
-    const spec = lowerTeethSpecs[i];
-    const x = spec.x;
-    const y = lArcYFront - lArcA * x * x;
-    const angle = Math.atan2(-2 * lArcA * x, 1) * 180 / Math.PI;
-
-    const socketOuter = box(spec.sw, spec.sd, 4.5);
-    const socketInner = box(spec.tw + 0.4, spec.td + 0.3, 7).translate(0, 0, -1);
-    const socket = difference(socketOuter, [socketInner])
-      .rotateZ(angle)
-      .translate(x, y, 80)
-      .color(COLORS.teethSocket)
-      .material(MATERIALS.M_black_oxide);
-
-    let tooth;
-    if (spec.label === "canine") {
-      const base = box(spec.tw, spec.td, spec.th * 0.55);
-      const tip = box(spec.tw * 0.6, spec.td * 0.65, spec.th * 0.55)
-        .translate(0, 0, spec.th * 0.45);
-      tooth = union(base, tip)
-        .rotateZ(angle)
-        .translate(x, y, 82.5 + (spec.th - 7) * 0.3)
-        .color(COLORS.chrome)
-        .material(MATERIALS.M_dark_brushed_metal);
-    } else if (spec.label === "molar" || spec.label === "premolar") {
-      const body = box(spec.tw, spec.td, spec.th);
-      const groove = box(spec.tw * 0.4, spec.td + 2, 1.2)
-        .translate(0, 0, -spec.th * 0.5 + 0.4);
-      tooth = difference(body, [groove])
-        .rotateZ(angle)
-        .translate(x, y, 82.5 + (spec.th - 7) * 0.3)
-        .color(COLORS.chrome)
-        .material(MATERIALS.M_dark_brushed_metal);
-    } else {
-      tooth = box(spec.tw, spec.td, spec.th)
-        .rotateZ(angle)
-        .translate(x, y, 82.5 + (spec.th - 7) * 0.3)
-        .color(COLORS.chrome)
-        .material(MATERIALS.M_dark_brushed_metal);
-    }
-
-    const toothCutter = box(spec.sw + 1, spec.sd + 1, 16)
-      .rotateZ(angle)
-      .translate(x, y, 80);
-
-    lowerTeethGroup.push(
-      { name: `lower_socket_${spec.label}_${i + 1}`, shape: socket },
-      { name: `lower_tooth_${spec.label}_${i + 1}`, shape: tooth }
-    );
-    lowerCutters.push(toothCutter);
-  }
-
-  // --- Lower gum rail ---
-  const lowerGumSegments = [];
-  for (let gx = -40; gx <= 40; gx += 4) {
-    const gy = lArcYFront - lArcA * gx * gx - 3.5;
-    const gAngle = Math.atan2(-2 * lArcA * gx, 1) * 180 / Math.PI;
-    lowerGumSegments.push(
-      box(4.2, 3.0, 5.0)
-        .rotateZ(gAngle)
-        .translate(gx, gy, 79)
-    );
-  }
-  const lowerGumRail = union(...lowerGumSegments)
-    .color(COLORS.darkMetal)
+  const occlusionGuide = roundedCrown(60, 2.2, 2.2, 1.1)
+    .translate(0, 77.6, 84.9)
+    .color(COLORS.blackOxide)
     .material(MATERIALS.M_black_oxide);
+
+  const leftCanineStop = cylinder(7, 2.8, 2.2, 16)
+    .pointAlong([0, 1, 0])
+    .translate(-16, 76, 86)
+    .color(COLORS.fastenerDark)
+    .material(MATERIALS.M_fastener_dark);
+  const rightCanineStop = cylinder(7, 2.8, 2.2, 16)
+    .pointAlong([0, 1, 0])
+    .translate(16, 76, 86)
+    .color(COLORS.fastenerDark)
+    .material(MATERIALS.M_fastener_dark);
 
   // --- Heat-sink ribs on back of chin (structural + thermal) ---
   const jawRibs = [];
@@ -836,6 +828,10 @@ function makeMandible() {
     { name: "lower_lip_plate", shape: lowerLip },
     { name: "lower_lip_corner_left", shape: lowerLipCornerL },
     { name: "lower_lip_corner_right", shape: lowerLipCornerR },
+    ...lowerLipPlates,
+    { name: "occlusion_clearance_guide", shape: occlusionGuide },
+    { name: "left_canine_stop_pin", shape: leftCanineStop },
+    { name: "right_canine_stop_pin", shape: rightCanineStop },
     { name: "lower_gum_rail", shape: lowerGumRail },
     ...jawRibs,
     { name: "left_mandible_rail", shape: leftJawRail },
@@ -846,7 +842,7 @@ function makeMandible() {
     { name: "left_mandible_actuator_rod", shape: leftActuatorRod },
     { name: "right_mandible_actuator_body", shape: rightActuatorBody },
     { name: "right_mandible_actuator_rod", shape: rightActuatorRod },
-    ...lowerTeethGroup
+    ...lowerDental.children
   );
 }
 
