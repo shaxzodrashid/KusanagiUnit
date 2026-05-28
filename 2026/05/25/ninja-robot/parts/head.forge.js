@@ -62,12 +62,12 @@ function makeLensPod(name, x) {
 }
 
 function makeEyeYoke(x) {
-  return sphere(1)
-    .color(COLORS.black)
-    .withConnectors({
-      yaw_joint: connector("eye-yaw", { origin: [x, 54, 148], axis: [0, 0, -1], kind: "revolute" }),
-      pitch_joint: connector("eye-pitch", { origin: [x, 54, 148], axis: [1, 0, 0], kind: "revolute" })
-    });
+  return group(
+    { name: "yoke_pivot", shape: sphere(1).color(COLORS.black) }
+  ).withConnectors({
+    yaw_joint: connector("eye-yaw", { origin: [x, 54, 148], axis: [0, 0, -1], kind: "revolute" }),
+    pitch_joint: connector("eye-pitch", { origin: [x, 54, 148], axis: [1, 0, 0], kind: "revolute" })
+  });
 }
 
 // Temple modules with micro-grille slots, proximity sensor, and maintenance port
