@@ -960,7 +960,7 @@ function makeHeadFrame() {
     nose_vent_mount: connector({ origin: [0, 72, 116], axis: [0, 1, 0] }),
     mandible_hinge: connector("jaw-pitch", { origin: [0, 22, 108], axis: [-1, 0, 0], kind: "revolute" }),
     left_eye_mount: connector("left-eye-yaw", { origin: [-eyeSpacing / 2, 54, 148], axis: [0, 0, 1], kind: "revolute" }),
-    right_eye_mount: connector("right-eye-yaw", { origin: eyeSpacing / 2, 54, 148], axis: [0, 0, 1], kind: "revolute" }),
+    right_eye_mount: connector("right-eye-yaw", { origin: [eyeSpacing / 2, 54, 148], axis: [0, 0, 1], kind: "revolute" }),
   });
 }
 
