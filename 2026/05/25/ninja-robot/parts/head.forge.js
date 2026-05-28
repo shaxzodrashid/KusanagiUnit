@@ -1,7 +1,7 @@
 // Robot Head Assembly
 // Path: 2026/05/25/ninja-robot/parts/head.forge.js
 
-const { COLORS, MATERIALS, DIMS } = require("../lib/constants.js");
+const { COLORS, MATERIALS, DIMS, JOINTS } = require("../lib/constants.js");
 
 scene({
   background: { top: "#0b0c10", bottom: "#1f2833" },
@@ -56,7 +56,18 @@ function makeLensPod(name, x) {
     { name: `${name}_emissive_ring`, shape: emissiveRing },
     { name: `${name}_convex_lens`, shape: convexLens },
     { name: `${name}_depth_sensor`, shape: innerSensor }
-  );
+  ).withConnectors({
+    gimbal: connector("eye-pitch", { origin: [x, 54, 148], axis: [-1, 0, 0], kind: "revolute" })
+  });
+}
+
+function makeEyeYoke(x) {
+  return sphere(1)
+    .color(COLORS.black)
+    .withConnectors({
+      yaw_joint: connector("eye-yaw", { origin: [x, 54, 148], axis: [0, 0, -1], kind: "revolute" }),
+      pitch_joint: connector("eye-pitch", { origin: [x, 54, 148], axis: [1, 0, 0], kind: "revolute" })
+    });
 }
 
 // Temple modules with micro-grille slots, proximity sensor, and maintenance port
@@ -89,12 +100,14 @@ function makeTempleModule(side, xSign) {
      
   const moduleBody = difference(base, [port, sensor, ...micSlots]);
   
-  return [
+  return group(
     { name: `${side}_temple_body`, shape: moduleBody },
     { name: `${side}_temple_sensor`, shape: sensor },
     { name: `${side}_temple_port`, shape: port },
     ...micSlots.map((s, idx) => ({ name: `${side}_temple_mic_slot_${idx + 1}`, shape: s }))
-  ];
+  ).withConnectors({
+    mount: connector({ origin: [xSign * 76, 62, 164], axis: [xSign * 1, 0, 0] })
+  });
 }
 
 function makeCraniumShell() {
@@ -102,8 +115,8 @@ function makeCraniumShell() {
     .scale([0.98, 0.92, 0.78])
     .translate(0, -6, 196);
 
-  const lowerTrim = box(240, 260, 170).translate(0, 0, 0);
-  const accessFlat = box(72, 16, 36).translate(0, 64, 214);
+  const lowerTrim = box(240, 260, 320).translate(0, 0, 0); // Trim below Z = 160 to match cranial zone (160-260mm)
+  const accessFlat = box(72, 16, 36).translate(0, -64, 214); // Rear cranial access flat
 
   // Divide into panels (Sagittal and Coronal seams)
   const sagittalSeam = box(1.8, 200, 100).translate(0, -6, 196);
@@ -150,10 +163,10 @@ function makeCraniumShell() {
     }
   }
 
-  // 3. Flat access cover screws (horizontal, fixed position)
+  // 3. Flat access cover screws (horizontal, fixed position) - Rear
   rivetSpecs.push(
-    { x: -24, y: 66, z: 230, orient: "horizontal" },
-    { x: 24, y: 66, z: 230, orient: "horizontal" }
+    { x: -24, y: -66, z: 230, orient: "horizontal" },
+    { x: 24, y: -66, z: 230, orient: "horizontal" }
   );
 
   // Generate shapes and cutters
@@ -198,10 +211,10 @@ function makeCraniumShell() {
     });
   });
 
-  // Seam cutter for 0.8mm gap around access cover
+  // Seam cutter for 0.8mm gap around access cover - Rear
   const coverSeam = difference(
-    box(67.6, 5.6, 31.6).translate(0, 68, 215),
-    box(66, 8, 30).translate(0, 68, 215)
+    box(67.6, 5.6, 31.6).translate(0, -68, 215),
+    box(66, 8, 30).translate(0, -68, 215)
   );
 
   const domePanelBase = difference(domeCore, [lowerTrim, accessFlat]);
@@ -209,7 +222,7 @@ function makeCraniumShell() {
     .color(COLORS.darkBrushedMetal)
     .material(MATERIALS.M_dark_brushed_metal);
 
-  const accessCoverBase = box(66, 4, 30).translate(0, 68, 215);
+  const accessCoverBase = box(66, 4, 30).translate(0, -68, 215); // Rear
   const accessCover = difference(accessCoverBase, rivetCutters)
     .color(COLORS.steel)
     .material(MATERIALS.M_dark_brushed_metal);
@@ -278,18 +291,15 @@ function makeCraniumShell() {
   const leftHub = makeEarHub("left", 76);
   const rightHub = makeEarHub("right", -76);
 
-  const leftTemple = makeTempleModule("left", 1);
-  const rightTemple = makeTempleModule("right", -1);
-
   return group(
     { name: "outer_cranium_shell", shape: shell },
     { name: "cranial_access_cover", shape: accessCover },
     ...screws,
     ...leftHub,
-    ...rightHub,
-    ...leftTemple,
-    ...rightTemple
-  );
+    ...rightHub
+  ).withConnectors({
+    mount: connector({ origin: [0, 0, 0], axis: [0, 0, 1] })
+  });
 }
 
 const MOUTH_ARC = {
@@ -481,64 +491,6 @@ function makeFaceFrame() {
     [cylinder(16, 21, undefined, 48).pointAlong([0, 1, 0]).translate(eyeSpacing / 2, 62, 148)]
   ).color(COLORS.chrome).material(MATERIALS.M_dark_brushed_metal);
 
-  const noseBlockBlank = box(34, 18, 44)
-    .translate(0, 72, 116);
-  const noseBevelL = box(20, 30, 60)
-    .rotateY(25)
-    .translate(-28, 72, 116);
-  const noseBevelR = box(20, 30, 60)
-    .rotateY(-25)
-    .translate(28, 72, 116);
-  const noseBlock = difference(noseBlockBlank, [noseBevelL, noseBevelR]).color(COLORS.steel);
-
-  const noseSketch = path()
-    .moveTo(0, 15)
-    .lineTo(13, -12)
-    .lineTo(5, -20)
-    .lineTo(0, -15)
-    .lineTo(-5, -20)
-    .lineTo(-13, -12)
-    .close();
-
-  const noseCutter = noseSketch
-    .extrude(30)
-    .rotateX(90)
-    .translate(0, 84, 116);
-
-  const septum = box(2.2, 16, 36)
-    .translate(0, 70, 116)
-    .color(COLORS.blackOxide)
-    .material(MATERIALS.M_black_oxide);
-
-  const noseCavityBase = difference(noseBlock, [noseCutter, septum]);
-
-  // Horizontal acoustic/thermal vent grille bars inside nose cavity
-  const grilleBars = [];
-  const grilleShapes = [];
-  for (let gz = 102; gz <= 130; gz += 7) {
-    const gb = box(24, 4, 1.8)
-      .translate(0, 80.5, gz)
-      .color(COLORS.blackOxide)
-      .material(MATERIALS.M_black_oxide);
-    grilleBars.push({
-      name: `nose_grille_bar_${gz}`,
-      shape: gb
-    });
-    grilleShapes.push(gb);
-  }
-
-  const noseCavity = union(noseCavityBase, grilleShapes)
-    .color(COLORS.steel)
-    .material(MATERIALS.M_dark_brushed_metal);
-
-  const leftHingeCutter = cylinder(12, 8.2, undefined, 24)
-    .pointAlong([1, 0, 0])
-    .translate(-56, 22, 108);
-
-  const rightHingeCutter = cylinder(12, 8.2, undefined, 24)
-    .pointAlong([-1, 0, 0])
-    .translate(56, 22, 108);
-
   const leftZygomaticFront = box(22, 12, 12)
     .translate(-50, 72, 104)
     .color(COLORS.chrome)
@@ -547,6 +499,9 @@ function makeFaceFrame() {
   const leftZygomaticSideBase = box(8, 45, 12)
     .rotateZ(18)
     .translate(-66, 46, 104);
+  const leftHingeCutter = cylinder(12, 8.2, undefined, 24)
+    .pointAlong([1, 0, 0])
+    .translate(-56, 22, 108);
   const leftSlot = box(12, 30, 4)
     .rotateZ(18)
     .translate(-66, 46, 108);
@@ -562,6 +517,9 @@ function makeFaceFrame() {
   const rightZygomaticSideBase = box(8, 45, 12)
     .rotateZ(-18)
     .translate(66, 46, 104);
+  const rightHingeCutter = cylinder(12, 8.2, undefined, 24)
+    .pointAlong([-1, 0, 0])
+    .translate(56, 22, 108);
   const rightSlot = box(12, 30, 4)
     .rotateZ(-18)
     .translate(66, 46, 108);
@@ -604,8 +562,6 @@ function makeFaceFrame() {
     { name: "right_cheek_rib", shape: rightCheek },
     { name: "left_socket_rim", shape: leftSocketRim },
     { name: "right_socket_rim", shape: rightSocketRim },
-    { name: "central_nose_vent", shape: noseCavity },
-    { name: "septum", shape: septum },
     { name: "left_zygomatic_front", shape: leftZygomaticFront },
     { name: "left_zygomatic_side", shape: leftZygomaticSide },
     { name: "right_zygomatic_front", shape: rightZygomaticFront },
@@ -618,6 +574,60 @@ function makeFaceFrame() {
     { name: "oral_cavity_recess", shape: oralCavity },
     ...upperDental.children
   );
+}
+
+function makeNoseVent() {
+  const noseBlockBlank = box(34, 18, 44)
+    .translate(0, 72, 116);
+  const noseBevelL = box(20, 30, 60)
+    .rotateY(25)
+    .translate(-28, 72, 116);
+  const noseBevelR = box(20, 30, 60)
+    .rotateY(-25)
+    .translate(28, 72, 116);
+  const noseBlock = difference(noseBlockBlank, [noseBevelL, noseBevelR]).color(COLORS.steel);
+
+  const noseSketch = path()
+    .moveTo(0, 15)
+    .lineTo(13, -12)
+    .lineTo(5, -20)
+    .lineTo(0, -15)
+    .lineTo(-5, -20)
+    .lineTo(-13, -12)
+    .close();
+
+  const noseCutter = noseSketch
+    .extrude(30)
+    .rotateX(90)
+    .translate(0, 84, 116);
+
+  const septum = box(2.2, 16, 36)
+    .translate(0, 70, 116)
+    .color(COLORS.blackOxide)
+    .material(MATERIALS.M_black_oxide);
+
+  const noseCavityBase = difference(noseBlock, [noseCutter, septum]);
+
+  // Horizontal acoustic/thermal vent grille bars inside nose cavity
+  const grilleShapes = [];
+  for (let gz = 102; gz <= 130; gz += 7) {
+    const gb = box(24, 4, 1.8)
+      .translate(0, 80.5, gz)
+      .color(COLORS.blackOxide)
+      .material(MATERIALS.M_black_oxide);
+    grilleShapes.push(gb);
+  }
+
+  const noseCavity = union(noseCavityBase, ...grilleShapes)
+    .color(COLORS.steel)
+    .material(MATERIALS.M_dark_brushed_metal);
+
+  return group(
+    { name: "central_nose_vent_cavity", shape: noseCavity },
+    { name: "septum", shape: septum }
+  ).withConnectors({
+    mount: connector({ origin: [0, 72, 116], axis: [0, 1, 0] })
+  });
 }
 
 function makeMandible() {
@@ -771,17 +781,7 @@ function makeMandible() {
     .color(COLORS.steel)
     .material(MATERIALS.M_dark_brushed_metal);
 
-  // --- Jaw actuators ---
-  const bodyInner = cylinder(18, 1.8, undefined, 12).translate(0, 0, 2);
-
-  const leftActuatorBody = difference(
-    cylinder(16, 3.0, undefined, 16),
-    [bodyInner]
-  )
-    .rotateX(20)
-    .translate(-56, 32, 68)
-    .color(COLORS.gold)
-    .material(MATERIALS.M_dark_brushed_metal);
+  // --- Jaw actuator rods (bodies are on structural frame) ---
   const leftActuatorRod = cylinder(16, 1.5, undefined, 12)
     .translate(0, 0, 14)
     .rotateX(20)
@@ -789,14 +789,6 @@ function makeMandible() {
     .color(COLORS.chrome)
     .material(MATERIALS.M_neck_bearing);
 
-  const rightActuatorBody = difference(
-    cylinder(16, 3.0, undefined, 16),
-    [bodyInner]
-  )
-    .rotateX(20)
-    .translate(56, 32, 68)
-    .color(COLORS.gold)
-    .material(MATERIALS.M_dark_brushed_metal);
   const rightActuatorRod = cylinder(16, 1.5, undefined, 12)
     .translate(0, 0, 14)
     .rotateX(20)
@@ -838,12 +830,12 @@ function makeMandible() {
     { name: "right_mandible_rail", shape: rightJawRail },
     { name: "left_hinge_link", shape: leftHingeLink },
     { name: "right_hinge_link", shape: rightHingeLink },
-    { name: "left_mandible_actuator_body", shape: leftActuatorBody },
     { name: "left_mandible_actuator_rod", shape: leftActuatorRod },
-    { name: "right_mandible_actuator_body", shape: rightActuatorBody },
     { name: "right_mandible_actuator_rod", shape: rightActuatorRod },
     ...lowerDental.children
-  );
+  ).withConnectors({
+    hinge: connector("jaw-pitch", { origin: [0, 22, 108], axis: [1, 0, 0], kind: "revolute" })
+  });
 }
 
 function makeTubeBetween(p1, p2, radius, color) {
@@ -931,27 +923,104 @@ function makeSkullCorpus() {
   );
 }
 
-function makeHead() {
-  const cranium = makeCraniumShell();
+function makeHeadFrame() {
   const face = makeFaceFrame();
-  const mandible = makeMandible();
-  const leftEye = makeLensPod("left_optical", -eyeSpacing / 2);
-  const rightEye = makeLensPod("right_optical", eyeSpacing / 2);
   const skullCorpus = makeSkullCorpus();
   const innerCore = makeInternalCore();
 
+  const leftActuatorBody = difference(
+    cylinder(16, 3.0, undefined, 16),
+    [cylinder(18, 1.8, undefined, 12).translate(0, 0, 2)]
+  )
+    .rotateX(20)
+    .translate(-56, 32, 68)
+    .color(COLORS.gold)
+    .material(MATERIALS.M_dark_brushed_metal);
+
+  const rightActuatorBody = difference(
+    cylinder(16, 3.0, undefined, 16),
+    [cylinder(18, 1.8, undefined, 12).translate(0, 0, 2)]
+  )
+    .rotateX(20)
+    .translate(56, 32, 68)
+    .color(COLORS.gold)
+    .material(MATERIALS.M_dark_brushed_metal);
+
   return group(
-    { name: "cranium_shell", group: cranium },
     { name: "face_frame", group: face },
-    { name: "left_optical_pod", group: leftEye },
-    { name: "right_optical_pod", group: rightEye },
-    { name: "mandible_assembly", group: mandible },
     { name: "skull_corpus", group: skullCorpus },
-    { name: "internal_core", group: innerCore }
+    { name: "internal_core", group: innerCore },
+    { name: "left_mandible_actuator_body", shape: leftActuatorBody },
+    { name: "right_mandible_actuator_body", shape: rightActuatorBody }
   ).withConnectors({
     roll_axis: connector("neck-roll", { origin: [0, -22, 0], axis: [0, -1, 0], kind: "revolute" }),
-    service_top: connector({ origin: [0, 0, headDims.height], axis: [0, 0, 1] }),
+    cranial_shell_mount: connector({ origin: [0, 0, 0], axis: [0, 0, 1] }),
+    left_temple_mount: connector({ origin: [76, 62, 164], axis: [1, 0, 0] }),
+    right_temple_mount: connector({ origin: [-76, 62, 164], axis: [-1, 0, 0] }),
+    nose_vent_mount: connector({ origin: [0, 72, 116], axis: [0, 1, 0] }),
+    mandible_hinge: connector("jaw-pitch", { origin: [0, 22, 108], axis: [-1, 0, 0], kind: "revolute" }),
+    left_eye_mount: connector("left-eye-yaw", { origin: [-eyeSpacing / 2, 54, 148], axis: [0, 0, 1], kind: "revolute" }),
+    right_eye_mount: connector("right-eye-yaw", { origin: eyeSpacing / 2, 54, 148], axis: [0, 0, 1], kind: "revolute" }),
   });
+}
+
+function makeHead() {
+  const headAssembly = assembly("Ninja Robot Head")
+    .addPart("HeadFrame", makeHeadFrame())
+    .addPart("CranialShell", makeCraniumShell())
+    .addPart("LeftTemple", makeTempleModule("left", 1))
+    .addPart("RightTemple", makeTempleModule("right", -1))
+    .addPart("NoseVent", makeNoseVent())
+    .addPart("Mandible", makeMandible())
+    .addPart("LeftEyeYoke", makeEyeYoke(-eyeSpacing / 2))
+    .addPart("LeftEye", makeLensPod("left_optical", -eyeSpacing / 2))
+    .addPart("RightEyeYoke", makeEyeYoke(eyeSpacing / 2))
+    .addPart("RightEye", makeLensPod("right_optical", eyeSpacing / 2))
+
+    // Connect CranialShell
+    .connect("HeadFrame.cranial_shell_mount", "CranialShell.mount", { as: "cranialShellMount" })
+    // Connect Temples
+    .connect("HeadFrame.left_temple_mount", "LeftTemple.mount", { as: "leftTempleMount" })
+    .connect("HeadFrame.right_temple_mount", "RightTemple.mount", { as: "rightTempleMount" })
+    // Connect NoseVent
+    .connect("HeadFrame.nose_vent_mount", "NoseVent.mount", { as: "noseVentMount" })
+    // Connect Mandible
+    .connect("HeadFrame.mandible_hinge", "Mandible.hinge", {
+      as: "jawPitch",
+      min: JOINTS.mandible.pitchMin,
+      max: JOINTS.mandible.pitchMax,
+      default: 0,
+    })
+    // Connect Left Eye Yaw
+    .connect("HeadFrame.left_eye_mount", "LeftEyeYoke.yaw_joint", {
+      as: "leftEyeYaw",
+      min: JOINTS.eyes.yawMin,
+      max: JOINTS.eyes.yawMax,
+      default: 0,
+    })
+    // Connect Left Eye Pitch
+    .connect("LeftEyeYoke.pitch_joint", "LeftEye.gimbal", {
+      as: "leftEyePitch",
+      min: JOINTS.eyes.pitchMin,
+      max: JOINTS.eyes.pitchMax,
+      default: 0,
+    })
+    // Connect Right Eye Yaw
+    .connect("HeadFrame.right_eye_mount", "RightEyeYoke.yaw_joint", {
+      as: "rightEyeYaw",
+      min: JOINTS.eyes.yawMin,
+      max: JOINTS.eyes.yawMax,
+      default: 0,
+    })
+    // Connect Right Eye Pitch
+    .connect("RightEyeYoke.pitch_joint", "RightEye.gimbal", {
+      as: "rightEyePitch",
+      min: JOINTS.eyes.pitchMin,
+      max: JOINTS.eyes.pitchMax,
+      default: 0,
+    });
+
+  return headAssembly;
 }
 
 return makeHead();

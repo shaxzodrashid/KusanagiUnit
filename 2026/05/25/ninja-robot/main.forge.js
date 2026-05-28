@@ -53,8 +53,13 @@ let robot = assembly("Mechanical Endoskeleton")
   })
   .addPart("Neck Yoke", neckYoke, {
     metadata: { material: "steel pitch/roll yoke", process: "machined prototype assembly" },
-  })
-  .addPart("Head", head)
+  });
+
+robot = head.mergeInto(robot, {
+  prefix: "Head"
+});
+
+robot = robot
   .connect("Torso.neck", "Neck Turntable.yaw_axis", {
     as: "neckYaw",
     min: JOINTS.neck.yawMin,
@@ -67,7 +72,7 @@ let robot = assembly("Mechanical Endoskeleton")
     max: JOINTS.neck.pitchMax,
     default: 0,
   })
-  .connect("Neck Yoke.roll_axis", "Head.roll_axis", {
+  .connect("Neck Yoke.roll_axis", "Head.HeadFrame.roll_axis", {
     as: "neckRoll",
     min: JOINTS.neck.rollMin,
     max: JOINTS.neck.rollMax,
@@ -107,12 +112,21 @@ robot.toJointsView({
     neckYaw: 0,
     neckPitch: 0,
     neckRoll: 0,
-    "Left Arm.shoulderPitch": -5,
-    "Left Arm.elbowPitch": -8,
+    "Head.jawPitch": 0,
+    "Head.leftEyeYaw": 0,
+    "Head.leftEyePitch": 0,
+    "Head.rightEyeYaw": 0,
+    "Head.rightEyePitch": 0,
+    "Left Arm.shoulderPitch": 0,
+    "Left Arm.shoulderRoll": 5,
+    "Left Arm.elbowPitch": 8,
     "Left Arm.wristYaw": 0,
-    "Right Arm.shoulderPitch": 5,
-    "Right Arm.elbowPitch": -8,
+    "Left Arm.wristRoll": 0,
+    "Right Arm.shoulderPitch": 0,
+    "Right Arm.shoulderRoll": 5,
+    "Right Arm.elbowPitch": 8,
     "Right Arm.wristYaw": 0,
+    "Right Arm.wristRoll": 0,
     "Left Leg.hipPitch": 0,
     "Left Leg.kneePitch": 0,
     "Left Leg.anklePitch": 0,
@@ -131,8 +145,13 @@ robot.toJointsView({
             neckYaw: -15,
             neckPitch: -4,
             neckRoll: -5,
-            "Left Arm.shoulderPitch": -10,
-            "Right Arm.shoulderPitch": 10,
+            "Left Arm.shoulderRoll": 10,
+            "Right Arm.shoulderRoll": 10,
+            "Head.leftEyeYaw": -8,
+            "Head.leftEyePitch": -4,
+            "Head.rightEyeYaw": -8,
+            "Head.rightEyePitch": -4,
+            "Head.jawPitch": 1,
           },
         },
         {
@@ -140,8 +159,13 @@ robot.toJointsView({
             neckYaw: 15,
             neckPitch: 6,
             neckRoll: 5,
-            "Left Arm.shoulderPitch": 5,
-            "Right Arm.shoulderPitch": -5,
+            "Left Arm.shoulderRoll": -5,
+            "Right Arm.shoulderRoll": -5,
+            "Head.leftEyeYaw": 8,
+            "Head.leftEyePitch": 4,
+            "Head.rightEyeYaw": 8,
+            "Head.rightEyePitch": 4,
+            "Head.jawPitch": 0,
           },
         },
         {
@@ -149,8 +173,13 @@ robot.toJointsView({
             neckYaw: -15,
             neckPitch: -4,
             neckRoll: -5,
-            "Left Arm.shoulderPitch": -10,
-            "Right Arm.shoulderPitch": 10,
+            "Left Arm.shoulderRoll": 10,
+            "Right Arm.shoulderRoll": 10,
+            "Head.leftEyeYaw": -8,
+            "Head.leftEyePitch": -4,
+            "Head.rightEyeYaw": -8,
+            "Head.rightEyePitch": -4,
+            "Head.jawPitch": 1,
           },
         },
       ],
@@ -175,6 +204,39 @@ robot.toJointsView({
         { values: { neckPitch: JOINTS.neck.pitchMin } },
         { values: { neckPitch: JOINTS.neck.pitchMax } },
         { values: { neckPitch: 0 } },
+      ],
+    },
+    {
+      name: "Focus Lock",
+      duration: 2.0,
+      loop: true,
+      keyframes: [
+        {
+          values: {
+            neckYaw: 0,
+            neckPitch: 2,
+            neckRoll: 0,
+            "Head.leftEyeYaw": 3,
+            "Head.rightEyeYaw": -3,
+            "Head.leftEyePitch": 0,
+            "Head.rightEyePitch": 0,
+            "Head.jawPitch": 0,
+          },
+        },
+      ],
+    },
+    {
+      name: "Jaw Speech Motion",
+      duration: 1.6,
+      loop: true,
+      keyframes: [
+        { values: { "Head.jawPitch": 0 } },
+        { values: { "Head.jawPitch": 18 } },
+        { values: { "Head.jawPitch": 4 } },
+        { values: { "Head.jawPitch": 22 } },
+        { values: { "Head.jawPitch": 2 } },
+        { values: { "Head.jawPitch": 15 } },
+        { values: { "Head.jawPitch": 0 } },
       ],
     },
   ],

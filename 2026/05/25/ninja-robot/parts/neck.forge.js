@@ -162,7 +162,15 @@ function makeNeckTurntable() {
     .color(COLORS.fastenerDark)
     .material(MATERIALS.M_fastener_dark);
 
+  const neckInterfaceFlange = difference(
+    cylinder(15, 85 / 2, undefined, 48).translate(0, 0, 7.5),
+    [cylinder(16, 70 / 2, undefined, 48).translate(0, 0, 8)]
+  )
+    .color(COLORS.darkMetal)
+    .material(MATERIALS.M_black_oxide);
+
   return group(
+    { name: "neck_interface_flange", shape: neckInterfaceFlange },
     { name: "yaw_bearing_lower_ring", shape: lowerBearing },
     { name: "yaw_datum_band", shape: yawDatumBand },
     { name: "rotating_cable_column", shape: rotatingColumn },

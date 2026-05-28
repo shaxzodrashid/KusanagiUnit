@@ -156,7 +156,7 @@ function makeTorso() {
   const pelvis = union(pelvisBar, pelvisCenter, hipSocketL, hipSocketR);
 
   // Neck socket at the top of spine
-  const neckSocket = cylinder(30, 24)
+  const neckSocket = cylinder(10, 85 / 2, undefined, 48)
     .translate(0, 0, 550)
     .color(COLORS.darkMetal);
 
