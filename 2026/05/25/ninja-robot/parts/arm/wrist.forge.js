@@ -54,8 +54,8 @@ function makeWristHub() {
     item("yaw_turntable", yawTurntable),
     item("central_cable_pass", cablePass)
   ).withConnectors({
-    wrist_pitch_axis: connector("wrist-pitch", { origin: [0, 0, 0], axis: [0, -1, 0], kind: "revolute" }),
-    wrist_yaw_axis: connector("wrist-yaw", { origin: [0, 0, -44], axis: [0, 0, 1], kind: "revolute" }),
+    wrist_yaw_axis: connector("wrist-yaw", { origin: [0, 0, 0], axis: [0, -sideSign, 0], kind: "revolute" }),
+    wrist_roll_axis: connector("wrist-roll", { origin: [0, 0, -44], axis: [0, 0, sideSign], kind: "revolute" }),
   });
 }
 
@@ -140,30 +140,30 @@ function makeHand() {
     ...thumb,
     ...tendons
   ).withConnectors({
-    wrist_yaw_axis: connector("wrist-yaw", { origin: [0, 0, 0], axis: [0, 0, -1], kind: "revolute" }),
+    wrist_roll_axis: connector("wrist-roll", { origin: [0, 0, 0], axis: [0, 0, -sideSign], kind: "revolute" }),
   });
 }
 
 const controls = {
   joints: [
     {
-      name: "wristPitch",
+      name: "wristYaw",
       parent: "Forearm",
       child: "Wrist Hub",
-      parentConnector: "Forearm.wrist_pitch_axis",
-      childConnector: "Wrist Hub.wrist_pitch_axis",
-      min: JOINTS.wrist.pitchMin,
-      max: JOINTS.wrist.pitchMax,
+      parentConnector: "Forearm.wrist_yaw_axis",
+      childConnector: "Wrist Hub.wrist_yaw_axis",
+      min: JOINTS.wrist.yawMin,
+      max: JOINTS.wrist.yawMax,
       defaultValue: 0,
     },
     {
-      name: "wristYaw",
+      name: "wristRoll",
       parent: "Wrist Hub",
       child: "Hand",
-      parentConnector: "Wrist Hub.wrist_yaw_axis",
-      childConnector: "Hand.wrist_yaw_axis",
-      min: JOINTS.wrist.yawMin,
-      max: JOINTS.wrist.yawMax,
+      parentConnector: "Wrist Hub.wrist_roll_axis",
+      childConnector: "Hand.wrist_roll_axis",
+      min: JOINTS.wrist.rollMin,
+      max: JOINTS.wrist.rollMax,
       defaultValue: 0,
     },
   ],

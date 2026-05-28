@@ -96,8 +96,8 @@ function makeForearm() {
     ...forearmActuators,
     ...wristFork
   ).withConnectors({
-    elbow_axis: connector("elbow-pitch", { origin: [0, 0, 0], axis: [0, -1, 0], kind: "revolute" }),
-    wrist_pitch_axis: connector("wrist-pitch", { origin: [0, 0, -forearmLen + 40], axis: [0, 1, 0], kind: "revolute" }),
+    elbow_axis: connector("elbow-pitch", { origin: [0, 0, 0], axis: [0, -sideSign, 0], kind: "revolute" }),
+    wrist_yaw_axis: connector("wrist-yaw", { origin: [0, 0, -forearmLen + 40], axis: [0, sideSign, 0], kind: "revolute" }),
   });
 }
 

@@ -95,7 +95,7 @@ function makeShoulderHub() {
     ...deltoidArmor,
     ...screws
   ).withConnectors({
-    yaw_axis: connector("shoulder-yaw", { origin: [0, 0, 0], axis: [0, 0, 1], kind: "revolute" }),
+    yaw_axis: connector("shoulder-yaw", { origin: [0, 0, 0], axis: [0, 0, sideSign], kind: "revolute" }),
   });
 }
 
@@ -115,8 +115,8 @@ function makeShoulderYawJoint() {
 
   return group(item("yaw_shaft", yawShaft), item("preload_collar", preloadCollar), item("lower_collar", lowerCollar), ...rollCradle)
     .withConnectors({
-      yaw_axis: connector("shoulder-yaw", { origin: [0, 0, 0], axis: [0, 0, -1], kind: "revolute" }),
-      roll_axis: connector("shoulder-roll", { origin: [0, 0, -52], axis: [1, 0, 0], kind: "revolute" }),
+      yaw_axis: connector("shoulder-yaw", { origin: [0, 0, 0], axis: [0, 0, -sideSign], kind: "revolute" }),
+      pitch_axis: connector("shoulder-pitch", { origin: [0, 0, -52], axis: [1, 0, 0], kind: "revolute" }),
     });
 }
 
@@ -135,8 +135,8 @@ function makeShoulderRollJoint() {
     hingeEar("pitch_ear_back", -26, -26, 16, 7),
     item("roll_index_ring", metal(torus(14, 1.8, 24).rotateX(90).translate(0, 0, -4), COLORS.brass))
   ).withConnectors({
-    roll_axis: connector("shoulder-roll", { origin: [0, 0, 0], axis: [-1, 0, 0], kind: "revolute" }),
-    pitch_axis: connector("shoulder-pitch", { origin: [0, 0, -26], axis: [0, 1, 0], kind: "revolute" }),
+    pitch_axis: connector("shoulder-pitch", { origin: [0, 0, 0], axis: [-1, 0, 0], kind: "revolute" }),
+    roll_axis: connector("shoulder-roll", { origin: [0, 0, -26], axis: [0, -sideSign, 0], kind: "revolute" }),
   });
 }
 
@@ -199,8 +199,8 @@ function makeUpperArm() {
     ...cableRuns,
     ...elbow
   ).withConnectors({
-    shoulder_pitch_axis: connector("shoulder-pitch", { origin: [0, 0, 0], axis: [0, -1, 0], kind: "revolute" }),
-    elbow_axis: connector("elbow-pitch", { origin: [0, 0, -upperLen], axis: [0, 1, 0], kind: "revolute" }),
+    shoulder_roll_axis: connector("shoulder-roll", { origin: [0, 0, 0], axis: [0, sideSign, 0], kind: "revolute" }),
+    elbow_axis: connector("elbow-pitch", { origin: [0, 0, -upperLen], axis: [0, sideSign, 0], kind: "revolute" }),
   });
 }
 
@@ -217,23 +217,23 @@ const controls = {
       defaultValue: 0,
     },
     {
-      name: "shoulderRoll",
+      name: "shoulderPitch",
       parent: "Shoulder Yaw Joint",
       child: "Shoulder Roll Joint",
-      parentConnector: "Shoulder Yaw Joint.roll_axis",
-      childConnector: "Shoulder Roll Joint.roll_axis",
-      min: JOINTS.shoulder.rollMin,
-      max: JOINTS.shoulder.rollMax,
+      parentConnector: "Shoulder Yaw Joint.pitch_axis",
+      childConnector: "Shoulder Roll Joint.pitch_axis",
+      min: JOINTS.shoulder.pitchMin,
+      max: JOINTS.shoulder.pitchMax,
       defaultValue: 0,
     },
     {
-      name: "shoulderPitch",
+      name: "shoulderRoll",
       parent: "Shoulder Roll Joint",
       child: "Upper Arm",
-      parentConnector: "Shoulder Roll Joint.pitch_axis",
-      childConnector: "Upper Arm.shoulder_pitch_axis",
-      min: JOINTS.shoulder.pitchMin,
-      max: JOINTS.shoulder.pitchMax,
+      parentConnector: "Shoulder Roll Joint.roll_axis",
+      childConnector: "Upper Arm.shoulder_roll_axis",
+      min: JOINTS.shoulder.rollMin,
+      max: JOINTS.shoulder.rollMax,
       defaultValue: 0,
     },
   ],
