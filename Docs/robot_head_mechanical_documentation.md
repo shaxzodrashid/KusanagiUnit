@@ -1,7 +1,10 @@
 # Robot Head Assembly — Mechanical Documentation
 
 **Document type:** Markdown technical specification  
-**Source basis:** Three supplied mechanical/concept sheets: orthographic assembly, controls/kinematics, and exploded inner-construction sheet.  
+**Source basis:** Three supplied mechanical/concept sheets:
+* **Sheet 1: Orthographic Assembly** (`assets/head/HeadSpec1.png`)
+* **Sheet 2: Controls / Kinematics** (`assets/head/HeadSpec2.png`)
+* **Sheet 3: Exploded Inner-Construction** (`assets/head/HeadSpec3.png`)
 **Unit policy:** Source drawings are in centimeters. This document uses **millimeters as the primary CAD/manufacturing unit**, with source centimeter values shown where useful.  
 **Document status:** High-fidelity mechanical design documentation for 3D modeling, rigging, animation, and engineering handoff. It is **not a certified manufacturing drawing** until final CAD, exact datums, exact radii, GD&T, and prototype measurements are produced.
 
@@ -90,6 +93,8 @@ Recommended CAD orientation:
 
 ## 4. Overall Dimensional Envelope
 
+![Sheet 1: Orthographic Assembly](assets/head/HeadSpec1.png)
+
 ### 4.1 Bounding box
 
 The head module should fit inside this approximate envelope:
@@ -113,6 +118,8 @@ These are visual zones, not hard parting lines. The face frame and cable harness
 ---
 
 ## 5. Major Assembly Breakdown
+
+![Sheet 3: Exploded Inner-Construction](assets/head/HeadSpec3.png)
 
 ### 5.1 Component index
 
@@ -531,6 +538,8 @@ Recommended front-to-back stack:
 ---
 
 ## 10. Neck and Head Kinematics
+
+![Sheet 2: Controls / Kinematics](assets/head/HeadSpec2.png)
 
 ### 10.1 Primary neck motion
 
