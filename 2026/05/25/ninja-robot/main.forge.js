@@ -4,9 +4,6 @@
 const { COLORS, JOINTS } = require("./lib/constants.js");
 
 const torso = require("./parts/torso.forge.js");
-const neck = require("./parts/neck.forge.js");
-const neckYoke = require("./parts/neck_yoke.forge.js");
-const head = require("./parts/head.forge.js");
 const leftArm = require("./parts/arm.forge.js", { Side: "left" });
 const rightArm = require("./parts/arm.forge.js", { Side: "right" });
 const leftLeg = require("./parts/leg.forge.js", { Side: "left" });
@@ -56,7 +53,17 @@ let robot = assembly("Mechanical Endoskeleton")
   });
 
 robot = head.mergeInto(robot, {
-  prefix: "Head"
+  prefix: "Head",
+  mountParent: "Neck Yoke",
+  mountJoint: "neckRoll",
+  mountType: "revolute",
+  mountOptions: {
+    origin: [0, -22, 0],
+    axis: [0, 1, 0],
+    min: JOINTS.neck.rollMin,
+    max: JOINTS.neck.rollMax,
+    default: 0,
+  }
 });
 
 robot = robot
@@ -70,12 +77,6 @@ robot = robot
     as: "neckPitch",
     min: JOINTS.neck.pitchMin,
     max: JOINTS.neck.pitchMax,
-    default: 0,
-  })
-  .connect("Neck Yoke.roll_axis", "Head.HeadFrame.roll_axis", {
-    as: "neckRoll",
-    min: JOINTS.neck.rollMin,
-    max: JOINTS.neck.rollMax,
     default: 0,
   });
 
