@@ -4,6 +4,9 @@
 const { COLORS, JOINTS } = require("./lib/constants.js");
 
 const torso = require("./parts/torso.forge.js");
+const neck = require("./parts/neck.forge.js");
+const neckYoke = require("./parts/neck_yoke.forge.js");
+const head = require("./parts/head.forge.js");
 const leftArm = require("./parts/arm.forge.js", { Side: "left" });
 const rightArm = require("./parts/arm.forge.js", { Side: "right" });
 const leftLeg = require("./parts/leg.forge.js", { Side: "left" });
@@ -58,7 +61,7 @@ robot = head.mergeInto(robot, {
   mountJoint: "neckRoll",
   mountType: "revolute",
   mountOptions: {
-    origin: [0, -22, 0],
+    frame: Transform.identity().translate(0, 0, 40).rotateAxis([1, 0, 0], 180),
     axis: [0, 1, 0],
     min: JOINTS.neck.rollMin,
     max: JOINTS.neck.rollMax,
@@ -186,15 +189,14 @@ robot.toJointsView({
       ],
     },
     {
-      name: "Full 360 Neck Rotation",
+      name: "Full Neck Range Check",
       duration: 4.0,
       loop: true,
-      continuous: true,
       keyframes: [
-        { values: { neckYaw: 0, neckPitch: 0 } },
-        { values: { neckYaw: 120, neckPitch: 0 } },
-        { values: { neckYaw: 240, neckPitch: 0 } },
-        { values: { neckYaw: 360, neckPitch: 0 } },
+        { values: { neckYaw: JOINTS.neck.yawMin, neckPitch: 0, neckRoll: 0 } },
+        { values: { neckYaw: 0, neckPitch: JOINTS.neck.pitchMax, neckRoll: JOINTS.neck.rollMin } },
+        { values: { neckYaw: JOINTS.neck.yawMax, neckPitch: JOINTS.neck.pitchMin, neckRoll: JOINTS.neck.rollMax } },
+        { values: { neckYaw: 0, neckPitch: 0, neckRoll: 0 } },
       ],
     },
     {
@@ -227,6 +229,16 @@ robot.toJointsView({
       ],
     },
     {
+      name: "Diagnostic Blink",
+      duration: 0.18,
+      loop: true,
+      keyframes: [
+        { values: { "Head.leftEyePitch": 0, "Head.rightEyePitch": 0, "Head.jawPitch": 0 } },
+        { values: { "Head.leftEyePitch": -4, "Head.rightEyePitch": -4, "Head.jawPitch": 2 } },
+        { values: { "Head.leftEyePitch": 0, "Head.rightEyePitch": 0, "Head.jawPitch": 0 } },
+      ],
+    },
+    {
       name: "Jaw Speech Motion",
       duration: 1.6,
       loop: true,
@@ -238,6 +250,25 @@ robot.toJointsView({
         { values: { "Head.jawPitch": 2 } },
         { values: { "Head.jawPitch": 15 } },
         { values: { "Head.jawPitch": 0 } },
+      ],
+    },
+    {
+      name: "Neck Micro-Stabilization",
+      duration: 1.2,
+      loop: true,
+      keyframes: [
+        { values: { neckYaw: -0.25, neckPitch: 0.15, neckRoll: -0.2 } },
+        { values: { neckYaw: 0.25, neckPitch: -0.15, neckRoll: 0.2 } },
+        { values: { neckYaw: 0, neckPitch: 0, neckRoll: 0 } },
+      ],
+    },
+    {
+      name: "Service-Mode Eye Dimming",
+      duration: 2.4,
+      loop: true,
+      keyframes: [
+        { values: { neckYaw: 0, neckPitch: -8, neckRoll: 0, "Head.leftEyePitch": -6, "Head.rightEyePitch": -6, "Head.jawPitch": 0 } },
+        { values: { neckYaw: 0, neckPitch: -8, neckRoll: 0, "Head.leftEyePitch": -2, "Head.rightEyePitch": -2, "Head.jawPitch": 0 } },
       ],
     },
   ],
